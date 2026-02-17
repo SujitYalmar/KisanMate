@@ -1,0 +1,17 @@
+-- This table stores all your farm expenses
+CREATE TABLE Expense (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT NOT NULL,  -- e.g., Fertilizer, Labor
+    amount REAL NOT NULL,    -- The cost in ₹
+    cropName TEXT NOT NULL,  -- e.g., Grapes, Wheat
+    timestamp INTEGER NOT NULL -- The date/time of the expense
+);
+
+-- Query to add a new expense to the database
+insertExpense:
+INSERT INTO Expense(category, amount, cropName, timestamp)
+VALUES (?, ?, ?, ?);
+
+-- Query to get all expenses, showing the newest ones first
+selectAllExpenses:
+SELECT * FROM Expense ORDER BY timestamp DESC;
