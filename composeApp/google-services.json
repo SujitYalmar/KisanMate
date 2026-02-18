@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "123828525967",
+    "project_id": "kisanmate-9043f",
+    "storage_bucket": "kisanmate-9043f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:123828525967:android:4a2996fab2199afda649fa",
+        "android_client_info": {
+          "package_name": "com.example.kisanmate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCyDtf_fIEWBiSfwMp4O0JEcUX9CszQyOQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

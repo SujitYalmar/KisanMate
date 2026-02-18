@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    // Add this line to enable Firebase for Android
+    id("com.google.gms.google-services") version "4.4.2"
 }
 
 kotlin {
@@ -39,6 +41,7 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(compose.materialIconsExtended)
             // Firebase Auth & Firestore for KMP
             implementation("dev.gitlive:firebase-auth:1.13.0")
             implementation("dev.gitlive:firebase-firestore:1.13.0")
