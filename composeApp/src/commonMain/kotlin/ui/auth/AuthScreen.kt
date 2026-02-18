@@ -15,110 +15,103 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kisanmate.presentation.auth.*
 
+// ... (imports remain the same)
+
 @Composable
-fun AuthScreen(
-    state: AuthState,
-    onAction: (AuthAction) -> Unit
-) {
+fun AuthScreen(state: AuthState, onAction: (AuthAction) -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFDF7E7)) // Cream background
-            .padding(24.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFFFDF7E7)).padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(100.dp))
-
-        // 1. Welcome Header (Text only)
-        Text(
-            text = "KisanMate",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF795548),
-            letterSpacing = 2.sp
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = if (state.isOtpSent) "Verify OTP" else "Welcome, Farmer!",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF4E342E)
-        )
-
         Spacer(modifier = Modifier.height(60.dp))
 
-        // 2. Custom Input Card
+        Text("KisanMate", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF795548))
+
+        Text(
+            text = when {
+                state.isOtpSent -> "Verify OTP"
+                state.isSignupMode -> "Create Account"
+                else -> "Welcome Back!"
+            },
+            fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E342E)
+        )
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // Input Card
         Surface(
-            modifier = Modifier.fillMaxWidth().height(100.dp),
-            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+            shape = RoundedCornerShape(24.dp),
             border = BorderStroke(1.dp, Color(0xFFD7CCC8)),
             color = Color.White
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = if (state.isOtpSent) "6-Digit Code" else "Mobile Number",
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
+            Column(modifier = Modifier.padding(20.dp)) {
+                // NAME FIELD: Only shows during Signup
+                if (state.isSignupMode && !state.isOtpSent) {
+                    AuthInputField(
+                        label = "Full Name",
+                        value = state.name,
+                        onValueChange = { onAction(AuthAction.OnNameChange(it)) },
+                        placeholder = "e.g. Sujit Yalmar"
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
-                BasicTextField(
+                // PHONE/OTP FIELD
+                AuthInputField(
+                    label = if (state.isOtpSent) "6-Digit Code" else "Mobile Number",
                     value = if (state.isOtpSent) state.otpCode else state.phoneNumber,
                     onValueChange = {
                         if (state.isOtpSent) onAction(AuthAction.OnOtpChange(it))
                         else onAction(AuthAction.OnPhoneChange(it))
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    textStyle = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4E342E)
-                    ),
-                    decorationBox = { innerTextField ->
-                        if ((!state.isOtpSent && state.phoneNumber.isEmpty()) ||
-                            (state.isOtpSent && state.otpCode.isEmpty())) {
-                            Text(
-                                text = if (state.isOtpSent) "000000" else "e.g. 9876543210",
-                                color = Color.LightGray,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        innerTextField()
-                    }
+                    placeholder = if (state.isOtpSent) "000000" else "9876543210"
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 3. Main Action Button
         Button(
             onClick = {
                 if (state.isOtpSent) onAction(AuthAction.VerifyOtp)
                 else onAction(AuthAction.SendOtp)
             },
-            modifier = Modifier.fillMaxWidth().height(65.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5B31)), // Dark Green
-            shape = RoundedCornerShape(32.dp),
+            modifier = Modifier.fillMaxWidth().height(60.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5B31)),
+            shape = RoundedCornerShape(30.dp),
             enabled = !state.isLoading
         ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-            } else {
+            if (state.isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            else Text(if (state.isOtpSent) "Verify & Start" else "Get OTP", fontSize = 18.sp)
+        }
+
+        // Toggle Auth Mode
+        if (!state.isOtpSent) {
+            TextButton(onClick = { onAction(AuthAction.ToggleAuthMode) }) {
                 Text(
-                    text = if (state.isOtpSent) "Verify & Login" else "Send OTP",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
+                    text = if (state.isSignupMode) "Already have an account? Login"
+                    else "New Farmer? Create an Account",
+                    color = Color(0xFF795548)
                 )
             }
         }
+    }
+}
 
-        // 4. Status/Error Text
-        state.error?.let {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
-        }
+@Composable
+fun AuthInputField(label: String, value: String, onValueChange: (String) -> Unit, placeholder: String) {
+    Column {
+        Text(label, color = Color.Gray, fontSize = 14.sp)
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = Color(0xFF4E342E)),
+            decorationBox = { innerTextField ->
+                if (value.isEmpty()) Text(placeholder, color = Color.LightGray, fontSize = 24.sp)
+                innerTextField()
+            }
+        )
     }
 }

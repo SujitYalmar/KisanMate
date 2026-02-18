@@ -18,7 +18,19 @@ class AuthViewModel : ViewModel() {
                 val cleaned = action.phone.filter { it.isDigit() }
                 _state.update { it.copy(phoneNumber = cleaned) }
             }
+            // 1. Handle Name Input
+            is AuthAction.OnNameChange -> {
+                _state.update { it.copy(name = action.name) }
+            }
             is AuthAction.OnOtpChange -> _state.update { it.copy(otpCode = action.code) }
+
+            // 2. Toggle between Login and Signup
+            AuthAction.ToggleAuthMode -> {
+                _state.update { it.copy(
+                    isSignupMode = !it.isSignupMode,
+                    error = null // Clear errors when switching
+                )}
+            }
             AuthAction.SendOtp -> simulateSendOtp()
             AuthAction.VerifyOtp -> simulateVerifyOtp()
         }
@@ -26,13 +38,20 @@ class AuthViewModel : ViewModel() {
 
     private fun simulateSendOtp() {
         viewModelScope.launch {
-            if (_state.value.phoneNumber.length != 10) {
-                _state.update { it.copy(error = "Enter 10-digit number") }
+            val s = _state.value
+
+            // Validation for Signup vs Login
+            if (s.isSignupMode && s.name.isBlank()) {
+                _state.update { it.copy(error = "Please enter your full name") }
+                return@launch
+            }
+            if (s.phoneNumber.length != 10) {
+                _state.update { it.copy(error = "Enter a valid 10-digit number") }
                 return@launch
             }
 
             _state.update { it.copy(isLoading = true, error = null) }
-            delay(1500) // Simulate network delay
+            delay(1500) // Simulate network request
 
             _state.update { it.copy(isLoading = false, isOtpSent = true) }
         }
@@ -41,13 +60,13 @@ class AuthViewModel : ViewModel() {
     private fun simulateVerifyOtp() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            delay(1000) // Simulate verification
+            delay(1000)
 
+            // Success simulation: "123456" is the master code for testing
             if (_state.value.otpCode == "123456") {
-                // Success: Navigates to Dashboard via LaunchedEffect in App.kt
                 _state.update { it.copy(isLoading = false, isAuthenticated = true) }
             } else {
-                _state.update { it.copy(isLoading = false, error = "Wrong OTP! Try 123456") }
+                _state.update { it.copy(isLoading = false, error = "Invalid OTP. Use 123456") }
             }
         }
     }
