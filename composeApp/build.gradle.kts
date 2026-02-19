@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    // Add this line to enable Firebase for Android
+    // 1. Apply the Google Services Plugin
     id("com.google.gms.google-services") version "4.4.2"
 }
 
@@ -42,15 +42,18 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(compose.materialIconsExtended)
-            // Firebase Auth & Firestore for KMP
+
+            // 2. Firebase Multiplatform Dependencies
             implementation("dev.gitlive:firebase-auth:1.13.0")
             implementation("dev.gitlive:firebase-firestore:1.13.0")
+            implementation("dev.gitlive:firebase-common:1.13.0") // Added for core functionality
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
     }
 }
+
 android {
     namespace = "com.example.kisanmate"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -77,6 +80,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 }
+
 dependencies {
     debugImplementation(libs.compose.uiTooling)
 }

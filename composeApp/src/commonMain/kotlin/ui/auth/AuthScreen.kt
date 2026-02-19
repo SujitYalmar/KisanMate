@@ -15,12 +15,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kisanmate.presentation.auth.*
 
-// ... (imports remain the same)
-
 @Composable
 fun AuthScreen(state: AuthState, onAction: (AuthAction) -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().background(Color(0xFFFDF7E7)).padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFFDF7E7))
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(60.dp))
@@ -46,13 +47,14 @@ fun AuthScreen(state: AuthState, onAction: (AuthAction) -> Unit) {
             color = Color.White
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
-                // NAME FIELD: Only shows during Signup
+                // NAME FIELD: Only shows during Signup Mode
                 if (state.isSignupMode && !state.isOtpSent) {
                     AuthInputField(
                         label = "Full Name",
                         value = state.name,
                         onValueChange = { onAction(AuthAction.OnNameChange(it)) },
-                        placeholder = "e.g. Sujit Yalmar"
+                        placeholder = "e.g. Sujit Yalmar",
+                        keyboardType = KeyboardType.Text // Standard text for names
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
@@ -65,12 +67,18 @@ fun AuthScreen(state: AuthState, onAction: (AuthAction) -> Unit) {
                         if (state.isOtpSent) onAction(AuthAction.OnOtpChange(it))
                         else onAction(AuthAction.OnPhoneChange(it))
                     },
-                    placeholder = if (state.isOtpSent) "000000" else "9876543210"
+                    placeholder = if (state.isOtpSent) "000000" else "9876543210",
+                    keyboardType = KeyboardType.Number // Numeric for phone/OTP
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+
+        // ERROR DISPLAY: Shows Firebase or validation errors
+        state.error?.let {
+            Text(text = it, color = Color.Red, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
+        }
 
         Button(
             onClick = {
@@ -86,7 +94,7 @@ fun AuthScreen(state: AuthState, onAction: (AuthAction) -> Unit) {
             else Text(if (state.isOtpSent) "Verify & Start" else "Get OTP", fontSize = 18.sp)
         }
 
-        // Toggle Auth Mode
+        // Toggle Auth Mode: Login <-> Signup
         if (!state.isOtpSent) {
             TextButton(onClick = { onAction(AuthAction.ToggleAuthMode) }) {
                 Text(
@@ -100,13 +108,20 @@ fun AuthScreen(state: AuthState, onAction: (AuthAction) -> Unit) {
 }
 
 @Composable
-fun AuthInputField(label: String, value: String, onValueChange: (String) -> Unit, placeholder: String) {
+fun AuthInputField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    keyboardType: KeyboardType = KeyboardType.Number // Default to number
+) {
     Column {
         Text(label, color = Color.Gray, fontSize = 14.sp)
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = Color(0xFF4E342E)),
             decorationBox = { innerTextField ->
                 if (value.isEmpty()) Text(placeholder, color = Color.LightGray, fontSize = 24.sp)
