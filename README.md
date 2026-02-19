@@ -1,35 +1,111 @@
-This is a Kotlin Multiplatform project targeting Android, iOS.
+# 🌱 KisanMate – Farmer Expense Tracker
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
-
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
-
-### Build and Run Android Application
-
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
-
-### Build and Run iOS Application
-
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+KisanMate is a simple, modern, and farmer-friendly mobile app designed to help farmers track their expenses, income, and profit in an easy and intuitive way.  
+The app is built with a clean interface, large buttons, and minimal text to support users with low digital literacy.
 
 ---
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+## 🎯 Purpose
+Many farmers still track expenses manually, which makes it difficult to understand profits and losses.  
+KisanMate provides a simple digital solution to:
+
+- Record daily farming expenses
+- Track income from crops
+- View profit or loss
+- Analyze monthly reports
+
+---
+
+## 👨‍🌾 Target Users
+- Indian farmers
+- Users with low digital literacy
+- Support for **Hindi and regional languages**
+
+---
+
+## 🎨 Design Philosophy
+- Clean, modern, and minimal UI
+- Large buttons and clear icons
+- High contrast for outdoor visibility
+- Rounded cards and friendly layout
+- Earthy color palette:
+  - Green
+  - Brown
+  - Light yellow
+
+---
+
+## 📱 App Screens
+
+### 1. Splash Screen
+- KisanMate logo
+- Farm-themed illustration
+- Simple and welcoming design
+
+### 2. Home Dashboard
+- Total expenses
+- Total income
+- Profit/Loss summary
+- Quick action buttons
+
+### 3. Add Expense Screen
+- Category icons:
+  - Seeds
+  - Fertilizer
+  - Labor
+  - Equipment
+  - Fuel
+  - Others
+- Amount input
+- Date selector
+- Save button
+
+### 4. Reports Screen
+- Monthly expense chart
+- Category-wise breakdown
+
+### 5. Profile / Settings
+- Language selection
+- Farm name
+- Backup option
+
+---
+
+## 🧰 Tech Stack
+
+
+---
+
+## 🚀 Features
+- Simple expense tracking
+- Income recording
+- Profit/Loss calculation
+- Monthly reports
+- Multi-language support
+- Offline-friendly design
+
+---
+
+## 📸 Screenshots
+
+
+---
+
+## 📦 Installation
+```bash
+git clone https://github.com/your-username/KisanMate.git
+cd KisanMate
+```
+
+Then run the project using your development environment.
+
+---
+
+## 🤝 Contributing
+Contributions are welcome.  
+Feel free to fork the repository and submit a pull request.
+
+---
+
+## 📄 License
+This project is licensed under the MIT License.
