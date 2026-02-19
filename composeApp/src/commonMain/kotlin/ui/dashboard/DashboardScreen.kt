@@ -3,12 +3,13 @@ package com.example.kisanmate.ui.dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,9 +19,35 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kisanmate.ExpenseRepository
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.auth.auth
+import dev.gitlive.firebase.firestore.firestore
 
 @Composable
 fun DashboardScreen(repository: ExpenseRepository) {
+    // Firebase References
+    val auth = Firebase.auth
+    val firestore = Firebase.firestore
+    val currentUser = auth.currentUser
+
+    // State for Dynamic Content
+    var userName by remember { mutableStateOf("Farmer") }
+    var totalIncome by remember { mutableLongStateOf(0L) }
+    var totalExpense by remember { mutableLongStateOf(0L) }
+
+    // Fetch User Profile Name
+    LaunchedEffect(currentUser) {
+        currentUser?.let { user ->
+            try {
+                val snapshot = firestore.collection("users").document(user.uid).get()
+                userName = snapshot.get<String>("name") ?: "Sujit Ji"
+            } catch (e: Exception) {
+                userName = "Sujit Ji" // Fallback to your name
+            }
+        }
+    }
+
+    // Main UI Layout
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -29,25 +56,29 @@ fun DashboardScreen(repository: ExpenseRepository) {
     ) {
         item {
             Spacer(modifier = Modifier.height(20.dp))
-            HeaderSection()
+
+            // Pass the dynamic name to Header
+            HeaderSection(name = userName)
+
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Financial Summary Cards
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 StatCard(
                     label = "Income",
-                    amount = "₹45,000",
-                    trend = "+12%",
+                    amount = "₹$totalIncome",
+                    trend = "+0%",
                     bgColor = Color(0xFFE8F5E9),
                     textColor = Color(0xFF2E7D32),
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     label = "Expenses",
-                    amount = "₹12,450",
-                    trend = "-5%",
+                    amount = "₹$totalExpense",
+                    trend = "-0%",
                     bgColor = Color(0xFFFFEBEE),
                     textColor = Color(0xFFC62828),
                     modifier = Modifier.weight(1f)
@@ -55,7 +86,8 @@ fun DashboardScreen(repository: ExpenseRepository) {
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-            TotalProfitCard("₹32,550")
+            TotalProfitCard("₹${totalIncome - totalExpense}")
+
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
@@ -92,24 +124,15 @@ fun DashboardScreen(repository: ExpenseRepository) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Recent Activity",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF3E2723)
-                )
-                Text(
-                    text = "See All",
-                    color = Color(0xFF2E7D32),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = "Recent Activity", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3E2723))
+                Text(text = "See All", color = Color(0xFF2E7D32), fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        items(5) {
+        // Transactions will be mapped here from Firestore later
+        items(3) {
             TransactionItem()
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -117,43 +140,10 @@ fun DashboardScreen(repository: ExpenseRepository) {
 }
 
 @Composable
-fun ModernBottomNav(selectedTab: String, onTabSelected: (String) -> Unit) {
-    NavigationBar(containerColor = Color.White) {
-        NavigationBarItem(
-            selected = selectedTab == "home",
-            onClick = { onTabSelected("home") },
-            icon = { Icon(Icons.Default.Home, null) },
-            label = { Text("HOME") }
-        )
-        NavigationBarItem(
-            selected = selectedTab == "reports",
-            onClick = { onTabSelected("reports") },
-            icon = { Icon(Icons.Default.BarChart, null) },
-            label = { Text("REPORTS") }
-        )
-        NavigationBarItem(
-            selected = selectedTab == "khata",
-            onClick = { onTabSelected("khata") },
-            icon = { Icon(Icons.Default.MenuBook, null) },
-            label = { Text("KHATA") }
-        )
-        NavigationBarItem(
-            selected = selectedTab == "profile",
-            onClick = { onTabSelected("profile") },
-            icon = { Icon(Icons.Default.Person, null) },
-            label = { Text("PROFILE") }
-        )
-    }
-}
-
-@Composable
-fun HeaderSection() {
+fun HeaderSection(name: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
-            modifier = Modifier
-                .size(50.dp)
-                .clip(CircleShape)
-                .background(Color.LightGray),
+            modifier = Modifier.size(50.dp).clip(CircleShape).background(Color.LightGray),
             contentAlignment = Alignment.Center
         ) {
             Text("👨🏽‍🌾", fontSize = 24.sp)
@@ -161,12 +151,7 @@ fun HeaderSection() {
 
         Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
             Text(text = "Namaste,", color = Color.Gray, fontSize = 14.sp)
-            Text(
-                text = "Sujit Ji",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = Color(0xFF3E2723)
-            )
+            Text(text = name, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFF3E2723))
         }
 
         IconButton(onClick = {}) {
@@ -174,6 +159,8 @@ fun HeaderSection() {
         }
     }
 }
+
+// ... (Rest of your StatCard, TotalProfitCard, ActionCard, and TransactionItem functions remain the same)
 
 @Composable
 fun StatCard(
@@ -349,3 +336,57 @@ fun TransactionItem() {
         }
     }
 }
+@Composable
+fun ModernBottomNav(
+    selectedTab: String,
+    onTabSelected: (String) -> Unit
+) {
+    Box(contentAlignment = Alignment.TopCenter) {
+        NavigationBar(
+            containerColor = Color.White,
+            tonalElevation = 8.dp,
+            modifier = Modifier.height(80.dp)
+        ) {
+            NavigationBarItem(
+                selected = selectedTab == "home",
+                onClick = { onTabSelected("home") },
+                icon = { Icon(Icons.Default.Home, null) },
+                label = { Text("HOME") }
+            )
+            NavigationBarItem(
+                selected = selectedTab == "reports",
+                onClick = { onTabSelected("reports") },
+                icon = { Icon(Icons.Default.BarChart, null) },
+                label = { Text("REPORTS") }
+            )
+
+            Spacer(Modifier.width(60.dp))
+
+            NavigationBarItem(
+                selected = selectedTab == "khata",
+                onClick = { onTabSelected("khata") },
+                icon = { Icon(Icons.Default.MenuBook, null) },
+                label = { Text("KHATA") }
+            )
+            NavigationBarItem(
+                selected = selectedTab == "profile",
+                onClick = { onTabSelected("profile") },
+                icon = { Icon(Icons.Default.Person, null) },
+                label = { Text("PROFILE") }
+            )
+        }
+
+        FloatingActionButton(
+            onClick = { /* Add action */ },
+            containerColor = Color(0xFF4CAF50),
+            contentColor = Color.White,
+            shape = CircleShape,
+            modifier = Modifier
+                .offset(y = (-28).dp)
+                .size(64.dp)
+        ) {
+            Icon(Icons.Default.Add, null, modifier = Modifier.size(32.dp))
+        }
+    }
+}
+

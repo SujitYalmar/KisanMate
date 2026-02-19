@@ -1,73 +1,145 @@
 package com.example.kisanmate.presentation.auth
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
+import com.google.firebase.FirebaseException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthOptions
+import com.google.firebase.auth.PhoneAuthProvider
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 class AuthViewModel : ViewModel() {
+
+    private val firebaseAuth = FirebaseAuth.getInstance()
+    private val firestore = Firebase.firestore
+
     private val _state = MutableStateFlow(AuthState())
     val state = _state.asStateFlow()
 
+    private var verificationId: String? = null
+    var activity: Activity? = null
+
     fun onAction(action: AuthAction) {
         when (action) {
-            is AuthAction.OnPhoneChange -> {
-                val cleaned = action.phone.filter { it.isDigit() }
-                _state.update { it.copy(phoneNumber = cleaned) }
-            }
-            // 1. Handle Name Input
-            is AuthAction.OnNameChange -> {
+            is AuthAction.OnPhoneChange ->
+                _state.update { it.copy(phoneNumber = action.phone.filter { c -> c.isDigit() }) }
+
+            is AuthAction.OnOtpChange ->
+                _state.update { it.copy(otpCode = action.code) }
+
+            is AuthAction.OnNameChange ->
                 _state.update { it.copy(name = action.name) }
-            }
-            is AuthAction.OnOtpChange -> _state.update { it.copy(otpCode = action.code) }
 
-            // 2. Toggle between Login and Signup
-            AuthAction.ToggleAuthMode -> {
-                _state.update { it.copy(
-                    isSignupMode = !it.isSignupMode,
-                    error = null // Clear errors when switching
-                )}
-            }
-            AuthAction.SendOtp -> simulateSendOtp()
-            AuthAction.VerifyOtp -> simulateVerifyOtp()
+            AuthAction.SendOtp -> sendOtp()
+            AuthAction.VerifyOtp -> verifyCode()
+            AuthAction.ToggleAuthMode ->
+                _state.update { it.copy(isSignupMode = !it.isSignupMode, error = null) }
         }
     }
 
-    private fun simulateSendOtp() {
-        viewModelScope.launch {
-            val s = _state.value
+    private fun sendOtp() {
+        val phone = _state.value.phoneNumber
+        val act = activity ?: return
 
-            // Validation for Signup vs Login
-            if (s.isSignupMode && s.name.isBlank()) {
-                _state.update { it.copy(error = "Please enter your full name") }
-                return@launch
+        if (phone.length != 10) {
+            _state.update { it.copy(error = "Enter valid number") }
+            return
+        }
+
+        _state.update { it.copy(isLoading = true, error = null) }
+
+        val options = PhoneAuthOptions.newBuilder(firebaseAuth)
+            .setPhoneNumber("+91$phone")
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(act)
+            .setCallbacks(callbacks)
+            .build()
+
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    private val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+
+        override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+            firebaseAuth.signInWithCredential(credential)
+                .addOnCompleteListener {
+                    _state.update {
+                        it.copy(isLoading = false, isAuthenticated = true)
+                    }
+                }
+        }
+
+        override fun onVerificationFailed(e: FirebaseException) {
+            _state.update {
+                it.copy(isLoading = false, error = e.message)
             }
-            if (s.phoneNumber.length != 10) {
-                _state.update { it.copy(error = "Enter a valid 10-digit number") }
-                return@launch
+        }
+
+        override fun onCodeSent(
+            verificationId: String,
+            token: PhoneAuthProvider.ForceResendingToken
+        ) {
+            this@AuthViewModel.verificationId = verificationId
+            _state.update {
+                it.copy(isLoading = false, isOtpSent = true)
             }
-
-            _state.update { it.copy(isLoading = true, error = null) }
-            delay(1500) // Simulate network request
-
-            _state.update { it.copy(isLoading = false, isOtpSent = true) }
         }
     }
 
-    private fun simulateVerifyOtp() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            delay(1000)
+    private fun verifyCode() {
+        val code = _state.value.otpCode
+        val verId = verificationId ?: return
 
-            // Success simulation: "123456" is the master code for testing
-            if (_state.value.otpCode == "123456") {
-                _state.update { it.copy(isLoading = false, isAuthenticated = true) }
-            } else {
-                _state.update { it.copy(isLoading = false, error = "Invalid OTP. Use 123456") }
-            }
+        if (code.length < 6) {
+            _state.update { it.copy(error = "Enter 6-digit OTP") }
+            return
         }
+
+        _state.update { it.copy(isLoading = true, error = null) }
+
+        val credential = PhoneAuthProvider.getCredential(verId, code)
+
+        firebaseAuth.signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val user = task.result.user
+
+                    viewModelScope.launch {
+                        if (_state.value.isSignupMode && user != null) {
+                            firestore.collection("users")
+                                .document(user.uid)
+                                .set(
+                                    mapOf(
+                                        "name" to _state.value.name,
+                                        "phone" to _state.value.phoneNumber,
+                                        "createdAt" to System.currentTimeMillis()
+                                    )
+                                )
+                        }
+
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                isAuthenticated = true
+                            )
+                        }
+                    }
+                } else {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "Invalid OTP"
+                        )
+                    }
+                }
+            }
     }
 }
