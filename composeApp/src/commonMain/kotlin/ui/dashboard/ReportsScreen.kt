@@ -8,7 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,20 +17,33 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kisanmate.ExpenseRepository
 import androidx.compose.ui.draw.clip
-
+import com.example.kisanmate.model.Transaction
 
 @Composable
 fun ReportsScreen(repository: ExpenseRepository) {
+    // 1. Collect real data from the repository
+    val transactions by repository.getTransactions().collectAsState(initial = emptyList())
+
+    // 2. Logic to calculate totals for categories (Filtered by Expense)
+    val expenseTransactions = transactions.filter { it.type == "expense" }
+    val totalExpense = expenseTransactions.sumOf { it.amount }.toDouble()
+
+    // Grouping transactions by title to show "Spending Categories"
+    val categories = expenseTransactions.groupBy { it.title }
+        .mapValues { entry -> entry.value.sumOf { it.amount } }
+        .toList()
+        .sortedByDescending { it.second }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FBF8)) // Consistent light green tint
+            .background(Color(0xFFF8FBF8))
             .padding(horizontal = 20.dp)
     ) {
         item {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 1. Title & Month Selector
+            // Title & Month Selector
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -40,7 +53,7 @@ fun ReportsScreen(repository: ExpenseRepository) {
                     text = "Financial Reports",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF3E2723)
+                    color = Color(0xFF1B3D2F)
                 )
 
                 Surface(
@@ -61,27 +74,45 @@ fun ReportsScreen(repository: ExpenseRepository) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 2. Summary Chart Placeholder
-            Text("Monthly Performance", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3E2723))
+            // Real Data Bar Chart (Simplified representation)
+            Text("Monthly Performance", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1B3D2F))
             Spacer(modifier = Modifier.height(16.dp))
-            MockBarChart()
+
+            // Passing transactions to the chart
+            FinancialBarChart(transactions)
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 3. Category Distribution
-            Text("Spending Categories", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3E2723))
+            // 3. Dynamic Category Distribution
+            Text("Spending Categories", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1B3D2F))
             Spacer(modifier = Modifier.height(16.dp))
 
-            CategoryRow("Seeds & Fertilizer", "₹12,000", 0.6f, Color(0xFF4CAF50))
-            CategoryRow("Labor Costs", "₹8,500", 0.4f, Color(0xFFFFA000))
-            CategoryRow("Equipment Fuel", "₹4,200", 0.2f, Color(0xFFF44336))
-            CategoryRow("Electricity", "₹1,800", 0.1f, Color(0xFF2196F3))
+            if (categories.isEmpty()) {
+                Text("No expenses recorded yet.", color = Color.Gray, modifier = Modifier.padding(16.dp))
+            } else {
+                categories.forEach { (name, amount) ->
+                    val progress = if (totalExpense > 0) (amount.toFloat() / totalExpense.toFloat()) else 0f
+                    CategoryRow(
+                        name = name,
+                        amount = "₹$amount",
+                        progress = progress,
+                        color = Color(0xFF2E7D32)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
 
 @Composable
-fun MockBarChart() {
+fun FinancialBarChart(transactions: List<Transaction>) {
+    // Basic visualization of Income vs Expense
+    val income = transactions.filter { it.type == "income" }.sumOf { it.amount }.toFloat()
+    val expense = transactions.filter { it.type == "expense" }.sumOf { it.amount }.toFloat()
+    val maxVal = maxOf(income, expense).coerceAtLeast(1f)
+
     Surface(
         modifier = Modifier.fillMaxWidth().height(200.dp),
         color = Color.White,
@@ -93,24 +124,20 @@ fun MockBarChart() {
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.Bottom
         ) {
-            // Simulated Bars
-            Bar(0.4f, "Oct")
-            Bar(0.7f, "Nov")
-            Bar(0.5f, "Dec")
-            Bar(0.9f, "Jan")
-            Bar(0.6f, "Feb")
+            ChartBar(income / maxVal, "Income", Color(0xFF2E7D32))
+            ChartBar(expense / maxVal, "Expense", Color(0xFFC62828))
         }
     }
 }
 
 @Composable
-fun Bar(heightFraction: Float, label: String) {
+fun ChartBar(heightFraction: Float, label: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .width(30.dp)
-                .fillMaxHeight(heightFraction)
-                .background(Color(0xFF2E7D32), RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                .width(50.dp)
+                .fillMaxHeight(heightFraction.coerceAtLeast(0.05f)) // Min height so bar is visible
+                .background(color, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
         )
         Text(label, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
     }
@@ -120,8 +147,8 @@ fun Bar(heightFraction: Float, label: String) {
 fun CategoryRow(name: String, amount: String, progress: Float, color: Color) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(name, fontWeight = FontWeight.Medium, color = Color(0xFF5D4037))
-            Text(amount, fontWeight = FontWeight.Bold)
+            Text(name, fontWeight = FontWeight.Medium, color = Color(0xFF3E2723))
+            Text(amount, fontWeight = FontWeight.Bold, color = Color(0xFF1B3D2F))
         }
         Spacer(modifier = Modifier.height(8.dp))
         LinearProgressIndicator(
