@@ -73,162 +73,158 @@ fun DashboardScreen(repository: ExpenseRepository) {
         )
     }
 
+    // Main Scrollable Area
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F5F2)) // Soft mint/gray background
+            .background(Color(0xFFF7F9F7)) // Very light green tint
             .padding(horizontal = 20.dp)
     ) {
         item {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Welcome Header
-            Text(
-                text = "Namaste, $userName 👨🏽‍🌾",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF1B3D2F)
-            )
-            Text(text = "Manage your farm finances", color = Color.Gray, fontSize = 14.sp)
+            // Farmer Greeting
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Namaste,", color = Color.Gray, fontSize = 14.sp)
+                    Text(userName, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
+                }
+                IconButton(onClick = { /* Open Notifications */ }) {
+                    Icon(Icons.Default.Notifications, contentDescription = null, tint = Color(0xFF1B5E20))
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Modern Balance Card
-            ModernSummaryCard(totalIncome, totalExpense)
+            // Premium Profit Card
+            MainBalanceCard(totalIncome, totalExpense)
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Action Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                ActionButton(
-                    label = "Income",
-                    icon = Icons.Default.TrendingUp,
+            // Grid Actions
+            Text("Farm Actions", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.DarkGray)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ActionTile(
+                    label = "Add Income",
+                    icon = Icons.Default.AddCircle,
                     color = Color(0xFF2E7D32),
-                    modifier = Modifier.weight(1f),
-                    onClick = { dialogType = "income"; showDialog = true }
-                )
-                ActionButton(
-                    label = "Expense",
-                    icon = Icons.Default.TrendingDown,
+                    modifier = Modifier.weight(1f)
+                ) { dialogType = "income"; showDialog = true }
+
+                ActionTile(
+                    label = "Add Expense",
+                    icon = Icons.Default.RemoveCircle,
                     color = Color(0xFFC62828),
-                    modifier = Modifier.weight(1f),
-                    onClick = { dialogType = "expense"; showDialog = true }
-                )
+                    modifier = Modifier.weight(1f)
+                ) { dialogType = "expense"; showDialog = true }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Text(
-                text = "Recent Transactions",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1B3D2F)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Recent Activity", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("View All", color = Color(0xFF2E7D32), fontWeight = FontWeight.Medium, fontSize = 14.sp)
+            }
             Spacer(modifier = Modifier.height(16.dp))
         }
 
         items(transactions.take(10)) { txn ->
-            ModernTransactionItem(txn)
+            ModernTransactionRow(txn)
             Spacer(modifier = Modifier.height(12.dp))
         }
 
+        // Bottom Spacer to prevent overlap with Nav Bar
         item { Spacer(modifier = Modifier.height(100.dp)) }
     }
 }
 
 @Composable
-fun ModernSummaryCard(income: Long, expense: Long) {
+fun MainBalanceCard(income: Long, expense: Long) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1B3D2F)) // Dark Forest Green
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1B5E20))
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
-            Text("NET PROFIT", color = Color.White.copy(0.7f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Text("₹${income - expense}", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            Text("CURRENT PROFIT", color = Color.White.copy(0.7f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("₹${income - expense}", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Divider(color = Color.White.copy(0.1f))
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                SummaryMiniBlock("Income", "₹$income", Color(0xFF81C784))
-                SummaryMiniBlock("Expense", "₹$expense", Color(0xFFE57373))
+                FinanceSmallBlock("Income", "₹$income", Icons.Default.TrendingUp, Color(0xFF81C784))
+                FinanceSmallBlock("Expenses", "₹$expense", Icons.Default.TrendingDown, Color(0xFFE57373))
             }
         }
     }
 }
 
 @Composable
-fun SummaryMiniBlock(label: String, amount: String, color: Color) {
-    Column {
-        Text(label, color = Color.White.copy(0.7f), fontSize = 12.sp)
-        Text(amount, color = color, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+fun FinanceSmallBlock(label: String, amount: String, icon: ImageVector, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = color, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Column {
+            Text(label, color = Color.White.copy(0.6f), fontSize = 10.sp)
+            Text(amount, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        }
     }
 }
 
 @Composable
-fun ActionButton(label: String, icon: ImageVector, color: Color, modifier: Modifier, onClick: () -> Unit) {
+fun ActionTile(label: String, icon: ImageVector, color: Color, modifier: Modifier, onClick: () -> Unit) {
     Surface(
         modifier = modifier.clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = Color.White,
-        shadowElevation = 2.dp
+        shadowElevation = 4.dp
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(28.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(label, fontWeight = FontWeight.Bold, color = Color(0xFF1B3D2F))
+            Icon(icon, null, tint = color, modifier = Modifier.size(32.dp))
+            Spacer(Modifier.height(8.dp))
+            Text(label, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.DarkGray)
         }
     }
 }
 
 @Composable
-fun ModernTransactionItem(transaction: Transaction) {
-    val isIncome = transaction.type == "income"
-
+fun ModernTransactionRow(txn: Transaction) {
+    val isIncome = txn.type == "income"
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = Color.White
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(if (isIncome) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)),
+                modifier = Modifier.size(42.dp).clip(CircleShape).background(if (isIncome) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (isIncome) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                    contentDescription = null,
+                    if (isIncome) Icons.Default.CallMade else Icons.Default.CallReceived,
+                    null,
                     tint = if (isIncome) Color(0xFF2E7D32) else Color(0xFFC62828),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(transaction.title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                Text("Today", color = Color.Gray, fontSize = 12.sp) // You can add date formatting here
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(txn.title, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Text("Farm record", color = Color.Gray, fontSize = 11.sp)
             }
-
             Text(
-                text = if (isIncome) "+₹${transaction.amount}" else "-₹${transaction.amount}",
-                color = if (isIncome) Color(0xFF2E7D32) else Color(0xFFC62828),
+                "${if (isIncome) "+" else "-"} ₹${txn.amount}",
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
+                color = if (isIncome) Color(0xFF2E7D32) else Color(0xFFC62828)
             )
         }
     }

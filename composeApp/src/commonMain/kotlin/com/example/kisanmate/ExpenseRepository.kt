@@ -11,17 +11,16 @@ class ExpenseRepository {
     private val auth = Firebase.auth
     private val firestore = Firebase.firestore
 
-    private fun getUserCollection() = auth.currentUser?.let {
+    private fun getCollection() = auth.currentUser?.let {
         firestore.collection("users").document(it.uid).collection("transactions")
     }
 
     suspend fun addTransaction(transaction: Transaction) {
-        getUserCollection()?.add(transaction)
+        getCollection()?.add(transaction)
     }
 
-    // Real-time updates for the list and totals
     fun getTransactions(): Flow<List<Transaction>> {
-        val collection = getUserCollection() ?: throw Exception("User not logged in")
+        val collection = getCollection() ?: throw Exception("Not logged in")
         return collection.snapshots.map { snapshot ->
             snapshot.documents.map { it.data() }
         }
