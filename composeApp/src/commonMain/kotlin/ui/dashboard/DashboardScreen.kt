@@ -1,6 +1,7 @@
 package com.example.kisanmate.ui.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,284 +20,179 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kisanmate.ExpenseRepository
+import com.example.kisanmate.model.Transaction
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.firestore
+import kotlinx.coroutines.launch
 
 @Composable
 fun DashboardScreen(repository: ExpenseRepository) {
-    // Firebase References
     val auth = Firebase.auth
     val firestore = Firebase.firestore
     val currentUser = auth.currentUser
+    val scope = rememberCoroutineScope()
 
-    // State for Dynamic Content
     var userName by remember { mutableStateOf("Farmer") }
-    var totalIncome by remember { mutableLongStateOf(0L) }
-    var totalExpense by remember { mutableLongStateOf(0L) }
+    var showDialog by remember { mutableStateOf(false) }
+    var dialogType by remember { mutableStateOf("income") }
 
-    // Fetch User Profile Name
+    val transactions by repository.getTransactions().collectAsState(initial = emptyList())
+
+    val totalIncome = transactions.filter { it.type == "income" }.sumOf { it.amount }
+    val totalExpense = transactions.filter { it.type == "expense" }.sumOf { it.amount }
+
     LaunchedEffect(currentUser) {
         currentUser?.let { user ->
             try {
                 val snapshot = firestore.collection("users").document(user.uid).get()
-                userName = snapshot.get<String>("name") ?: "Sujit Ji"
-            } catch (e: Exception) {
-                userName = "Sujit Ji" // Fallback to your name
+                userName = snapshot.get<String>("name") ?: "Farmer"
+            } catch (_: Exception) {
+                userName = "Farmer"
             }
         }
     }
 
-    // Main UI Layout
+    if (showDialog) {
+        AddTransactionDialog(
+            type = dialogType,
+            onDismiss = { showDialog = false },
+            onSave = { title, amount ->
+                scope.launch {
+                    repository.addTransaction(
+                        Transaction(
+                            title = title,
+                            amount = amount,
+                            type = dialogType,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    )
+                }
+                showDialog = false
+            }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FBF8))
+            .background(Color(0xFFF1F5F2)) // Soft mint/gray background
             .padding(horizontal = 20.dp)
     ) {
         item {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Pass the dynamic name to Header
-            HeaderSection(name = userName)
+            // Welcome Header
+            Text(
+                text = "Namaste, $userName 👨🏽‍🌾",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF1B3D2F)
+            )
+            Text(text = "Manage your farm finances", color = Color.Gray, fontSize = 14.sp)
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Financial Summary Cards
+            // Modern Balance Card
+            ModernSummaryCard(totalIncome, totalExpense)
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                StatCard(
+                ActionButton(
                     label = "Income",
-                    amount = "₹$totalIncome",
-                    trend = "+0%",
-                    bgColor = Color(0xFFE8F5E9),
-                    textColor = Color(0xFF2E7D32),
-                    modifier = Modifier.weight(1f)
+                    icon = Icons.Default.TrendingUp,
+                    color = Color(0xFF2E7D32),
+                    modifier = Modifier.weight(1f),
+                    onClick = { dialogType = "income"; showDialog = true }
                 )
-                StatCard(
-                    label = "Expenses",
-                    amount = "₹$totalExpense",
-                    trend = "-0%",
-                    bgColor = Color(0xFFFFEBEE),
-                    textColor = Color(0xFFC62828),
-                    modifier = Modifier.weight(1f)
+                ActionButton(
+                    label = "Expense",
+                    icon = Icons.Default.TrendingDown,
+                    color = Color(0xFFC62828),
+                    modifier = Modifier.weight(1f),
+                    onClick = { dialogType = "expense"; showDialog = true }
                 )
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
-            TotalProfitCard("₹${totalIncome - totalExpense}")
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Quick Actions",
+                text = "Recent Transactions",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF3E2723)
+                color = Color(0xFF1B3D2F)
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                ActionCard(
-                    icon = Icons.Default.AddCircle,
-                    label = "Add Income",
-                    borderColor = Color(0xFFE8F5E9),
-                    modifier = Modifier.weight(1f)
-                )
-                ActionCard(
-                    icon = Icons.Default.RemoveCircle,
-                    label = "Add Expense",
-                    borderColor = Color(0xFFFFEBEE),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Recent Activity", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3E2723))
-                Text(text = "See All", color = Color(0xFF2E7D32), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            }
-
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Transactions will be mapped here from Firestore later
-        items(3) {
-            TransactionItem()
+        items(transactions.take(10)) { txn ->
+            ModernTransactionItem(txn)
             Spacer(modifier = Modifier.height(12.dp))
         }
+
+        item { Spacer(modifier = Modifier.height(100.dp)) }
     }
 }
 
 @Composable
-fun HeaderSection(name: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier.size(50.dp).clip(CircleShape).background(Color.LightGray),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("👨🏽‍🌾", fontSize = 24.sp)
-        }
-
-        Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
-            Text(text = "Namaste,", color = Color.Gray, fontSize = 14.sp)
-            Text(text = name, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFF3E2723))
-        }
-
-        IconButton(onClick = {}) {
-            Icon(Icons.Default.Notifications, null, tint = Color.DarkGray)
-        }
-    }
-}
-
-// ... (Rest of your StatCard, TotalProfitCard, ActionCard, and TransactionItem functions remain the same)
-
-@Composable
-fun StatCard(
-    label: String,
-    amount: String,
-    trend: String,
-    bgColor: Color,
-    textColor: Color,
-    modifier: Modifier
-) {
-    Surface(modifier = modifier, shape = RoundedCornerShape(24.dp), color = bgColor) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (label == "Income")
-                        Icons.Default.TrendingUp
-                    else
-                        Icons.Default.TrendingDown,
-                    contentDescription = null,
-                    tint = textColor,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = label,
-                    modifier = Modifier.padding(start = 4.dp),
-                    color = textColor.copy(alpha = 0.8f),
-                    fontSize = 14.sp
-                )
-            }
-
-            Text(
-                text = amount,
-                color = textColor,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
-
-            Surface(
-                color = Color.White.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = trend,
-                    color = textColor,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun TotalProfitCard(amount: String) {
-    Surface(
+fun ModernSummaryCard(income: Long, expense: Long) {
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        color = Color(0xFF5D4037),
-        shape = RoundedCornerShape(24.dp)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1B3D2F)) // Dark Forest Green
     ) {
-        Row(
-            modifier = Modifier.padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "TOTAL PROFIT",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = amount,
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+        Column(modifier = Modifier.padding(24.dp)) {
+            Text("NET PROFIT", color = Color.White.copy(0.7f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text("₹${income - expense}", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
 
-            Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .background(Color(0xFF4CAF50), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White)
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = Color.White.copy(0.1f))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                SummaryMiniBlock("Income", "₹$income", Color(0xFF81C784))
+                SummaryMiniBlock("Expense", "₹$expense", Color(0xFFE57373))
             }
         }
     }
 }
 
 @Composable
-fun ActionCard(
-    icon: ImageVector,
-    label: String,
-    borderColor: Color,
-    modifier: Modifier
-) {
+fun SummaryMiniBlock(label: String, amount: String, color: Color) {
+    Column {
+        Text(label, color = Color.White.copy(0.7f), fontSize = 12.sp)
+        Text(amount, color = color, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun ActionButton(label: String, icon: ImageVector, color: Color, modifier: Modifier, onClick: () -> Unit) {
     Surface(
-        modifier = modifier.height(120.dp),
-        shape = RoundedCornerShape(24.dp),
-        border = androidx.compose.foundation.BorderStroke(2.dp, borderColor),
-        color = Color.White
+        modifier = modifier.clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        shadowElevation = 2.dp
     ) {
         Column(
-            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .size(45.dp)
-                    .background(borderColor, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = if (label.contains("Income"))
-                        Color(0xFF2E7D32)
-                    else
-                        Color(0xFFC62828)
-                )
-            }
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(28.dp))
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = label,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF3E2723),
-                fontSize = 14.sp
-            )
+            Text(label, fontWeight = FontWeight.Bold, color = Color(0xFF1B3D2F))
         }
     }
 }
 
 @Composable
-fun TransactionItem() {
+fun ModernTransactionItem(transaction: Transaction) {
+    val isIncome = transaction.type == "income"
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -308,85 +204,32 @@ fun TransactionItem() {
         ) {
             Box(
                 modifier = Modifier
-                    .size(45.dp)
-                    .background(Color(0xFFF1F4F9), RoundedCornerShape(12.dp)),
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(if (isIncome) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Agriculture, null, tint = Color(0xFF5D4037))
+                Icon(
+                    imageVector = if (isIncome) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                    contentDescription = null,
+                    tint = if (isIncome) Color(0xFF2E7D32) else Color(0xFFC62828),
+                    modifier = Modifier.size(20.dp)
+                )
             }
 
-            Column(modifier = Modifier.padding(start = 16.dp).weight(1f)) {
-                Text(
-                    text = "Fertilizer Purchase",
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF3E2723)
-                )
-                Text(
-                    text = "Oct 24, 2023",
-                    color = Color.Gray,
-                    fontSize = 12.sp
-                )
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(transaction.title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Text("Today", color = Color.Gray, fontSize = 12.sp) // You can add date formatting here
             }
 
             Text(
-                text = "- ₹2,400",
-                color = Color(0xFFC62828),
-                fontWeight = FontWeight.Bold
+                text = if (isIncome) "+₹${transaction.amount}" else "-₹${transaction.amount}",
+                color = if (isIncome) Color(0xFF2E7D32) else Color(0xFFC62828),
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
             )
         }
     }
 }
-@Composable
-fun ModernBottomNav(
-    selectedTab: String,
-    onTabSelected: (String) -> Unit
-) {
-    Box(contentAlignment = Alignment.TopCenter) {
-        NavigationBar(
-            containerColor = Color.White,
-            tonalElevation = 8.dp,
-            modifier = Modifier.height(80.dp)
-        ) {
-            NavigationBarItem(
-                selected = selectedTab == "home",
-                onClick = { onTabSelected("home") },
-                icon = { Icon(Icons.Default.Home, null) },
-                label = { Text("HOME") }
-            )
-            NavigationBarItem(
-                selected = selectedTab == "reports",
-                onClick = { onTabSelected("reports") },
-                icon = { Icon(Icons.Default.BarChart, null) },
-                label = { Text("REPORTS") }
-            )
-
-            Spacer(Modifier.width(60.dp))
-
-            NavigationBarItem(
-                selected = selectedTab == "khata",
-                onClick = { onTabSelected("khata") },
-                icon = { Icon(Icons.Default.MenuBook, null) },
-                label = { Text("KHATA") }
-            )
-            NavigationBarItem(
-                selected = selectedTab == "profile",
-                onClick = { onTabSelected("profile") },
-                icon = { Icon(Icons.Default.Person, null) },
-                label = { Text("PROFILE") }
-            )
-        }
-
-        FloatingActionButton(
-            onClick = { /* Add action */ },
-            containerColor = Color(0xFF4CAF50),
-            contentColor = Color.White,
-            shape = CircleShape,
-            modifier = Modifier
-                .offset(y = (-28).dp)
-                .size(64.dp)
-        ) {
-            Icon(Icons.Default.Add, null, modifier = Modifier.size(32.dp))
-        }
-    }
-}
-

@@ -6,7 +6,9 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    // 1. Apply the Google Services Plugin
+
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.0"
+
     id("com.google.gms.google-services") version "4.4.2"
 }
 
@@ -42,6 +44,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(compose.materialIconsExtended)
+
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
             // 2. Firebase Multiplatform Dependencies
             implementation("dev.gitlive:firebase-auth:1.13.0")

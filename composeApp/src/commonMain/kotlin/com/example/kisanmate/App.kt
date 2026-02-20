@@ -1,6 +1,7 @@
 package com.example.kisanmate
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,7 +14,6 @@ import com.example.kisanmate.ui.splash.SplashScreen
 import com.example.kisanmate.ui.reports.ReportsScreen
 import com.example.kisanmate.ui.khata.KhataScreen
 import com.example.kisanmate.ui.profile.ProfileScreen
-import com.example.kisanmate.ui.dashboard.ModernBottomNav
 
 @Composable
 fun App(
@@ -26,18 +26,10 @@ fun App(
     var selectedTab by remember { mutableStateOf("home") }
 
     MaterialTheme {
-        Scaffold(
-            bottomBar = {
-                if (currentScreen == "main") {
-                    ModernBottomNav(
-                        selectedTab = selectedTab,
-                        onTabSelected = { selectedTab = it }
-                    )
-                }
-            }
-        ) { paddingValues ->
-            Box(modifier = Modifier.padding(paddingValues)) {
+        Scaffold { paddingValues ->
+            Box(modifier = Modifier.fillMaxSize()) {
                 when (currentScreen) {
+
                     "splash" -> SplashScreen(
                         viewModel = splashViewModel,
                         onFinished = { currentScreen = "auth" }
@@ -54,7 +46,9 @@ fun App(
 
                         AuthScreen(
                             state = authState,
-                            onAction = { authViewModel.onAction(it) }
+                            onAction = { action ->
+                                authViewModel.onAction(action)
+                            }
                         )
                     }
 
@@ -74,7 +68,10 @@ fun App(
 
 @Composable
 fun CenterText(text: String) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
         Text(text)
     }
 }
