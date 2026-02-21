@@ -39,7 +39,6 @@ fun App(
                             selectedTab = tab
                         },
                         onFabClick = {
-                            // FAB action (you can improve later)
                             selectedTab = "home"
                         }
                     )
@@ -55,16 +54,26 @@ fun App(
 
                 when (currentScreen) {
 
+                    // ✅ FIXED SPLASH LOGIC
                     "splash" -> {
-                        SplashScreen(
-                            viewModel = splashViewModel,
-                            onFinished = {
-                                currentScreen = "auth"
+
+                        val splashState by splashViewModel.state.collectAsState()
+
+                        LaunchedEffect(splashState.isFinished) {
+                            if (splashState.isFinished) {
+                                currentScreen =
+                                    if (splashState.isUserLoggedIn) "main"
+                                    else "auth"
                             }
+                        }
+
+                        SplashScreen(
+                            viewModel = splashViewModel
                         )
                     }
 
                     "auth" -> {
+
                         val authState by authViewModel.state.collectAsState()
 
                         LaunchedEffect(authState.isAuthenticated) {
@@ -80,6 +89,7 @@ fun App(
                     }
 
                     "main" -> {
+
                         when (selectedTab) {
 
                             "home" -> DashboardScreen(repository)

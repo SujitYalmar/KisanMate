@@ -40,6 +40,7 @@ class AuthViewModel : ViewModel() {
 
             AuthAction.SendOtp -> sendOtp()
             AuthAction.VerifyOtp -> verifyCode()
+
             AuthAction.ToggleAuthMode ->
                 _state.update { it.copy(isSignupMode = !it.isSignupMode, error = null) }
         }
@@ -70,11 +71,6 @@ class AuthViewModel : ViewModel() {
 
         override fun onVerificationCompleted(credential: PhoneAuthCredential) {
             firebaseAuth.signInWithCredential(credential)
-                .addOnCompleteListener {
-                    _state.update {
-                        it.copy(isLoading = false, isAuthenticated = true)
-                    }
-                }
         }
 
         override fun onVerificationFailed(e: FirebaseException) {
@@ -109,21 +105,52 @@ class AuthViewModel : ViewModel() {
 
         firebaseAuth.signInWithCredential(credential)
             .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val user = task.result.user
+                if (!task.isSuccessful) {
+                    _state.update {
+                        it.copy(isLoading = false, error = "Invalid OTP")
+                    }
+                    return@addOnCompleteListener
+                }
 
-                    viewModelScope.launch {
-                        if (_state.value.isSignupMode && user != null) {
-                            firestore.collection("users")
-                                .document(user.uid)
-                                .set(
-                                    mapOf(
-                                        "name" to _state.value.name,
-                                        "phone" to _state.value.phoneNumber,
-                                        "createdAt" to System.currentTimeMillis()
-                                    )
-                                )
+                val user = task.result.user ?: return@addOnCompleteListener
+
+                viewModelScope.launch {
+
+                    val userDoc = firestore.collection("users")
+                        .document(user.uid)
+                        .get()
+
+                    if (userDoc.exists) {
+                        // ✅ Existing user → login success
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                isAuthenticated = true
+                            )
                         }
+                    } else {
+                        // ❌ User does not exist in Firestore
+                        if (_state.value.name.isBlank()) {
+                            _state.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = "Please create account first",
+                                    isSignupMode = true
+                                )
+                            }
+                            return@launch
+                        }
+
+                        // ✅ Create new account
+                        firestore.collection("users")
+                            .document(user.uid)
+                            .set(
+                                mapOf(
+                                    "name" to _state.value.name,
+                                    "phone" to _state.value.phoneNumber,
+                                    "createdAt" to System.currentTimeMillis()
+                                )
+                            )
 
                         _state.update {
                             it.copy(
@@ -131,13 +158,6 @@ class AuthViewModel : ViewModel() {
                                 isAuthenticated = true
                             )
                         }
-                    }
-                } else {
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            error = "Invalid OTP"
-                        )
                     }
                 }
             }
