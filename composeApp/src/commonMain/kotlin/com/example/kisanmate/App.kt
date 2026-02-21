@@ -16,6 +16,7 @@ import com.example.kisanmate.ui.khata.KhataScreen
 import com.example.kisanmate.ui.profile.ProfileScreen
 import com.example.kisanmate.ui.reports.ReportsScreen
 import com.example.kisanmate.ui.splash.SplashScreen
+import com.example.kisanmate.ui.khata.AllTransactionsScreen
 
 @Composable
 fun App(
@@ -92,13 +93,28 @@ fun App(
 
                         when (selectedTab) {
 
-                            "home" -> DashboardScreen(repository)
+                            "home" -> DashboardScreen(
+                                repository = repository,
+                                onViewAllClick = {
+                                    selectedTab = "khata"
+                                }
+                            )
 
                             "reports" -> ReportsScreen(repository)
 
-                            "khata" -> KhataScreen(repository)
+                            "khata" -> AllTransactionsScreen(
+                                repository = repository,
+                                onBack = {
+                                    selectedTab = "home"
+                                }
+                            )
 
-                            "profile" -> ProfileScreen()
+                            "profile" -> ProfileScreen(
+                                onLogout = {
+                                    selectedTab = "home"
+                                    currentScreen = "auth"
+                                }
+                            )
                         }
                     }
                 }

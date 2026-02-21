@@ -78,10 +78,10 @@ fun ModernBottomNav(
                 icon = {
                     Icon(
                         Icons.Default.MenuBook,
-                        contentDescription = "Khata"
+                        contentDescription = "khata"
                     )
                 },
-                label = { Text("KHATA") },
+                label = { Text("Transaction") },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Color(0xFF4CAF50),
                     selectedTextColor = Color(0xFF4CAF50),
