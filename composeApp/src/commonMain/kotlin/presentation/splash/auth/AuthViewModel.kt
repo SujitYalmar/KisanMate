@@ -43,6 +43,9 @@ class AuthViewModel : ViewModel() {
 
             AuthAction.ToggleAuthMode ->
                 _state.update { it.copy(isSignupMode = !it.isSignupMode, error = null) }
+
+            AuthAction.BackFromOtp ->
+                _state.update { it.copy(isOtpSent = false, error = null) }
         }
     }
 

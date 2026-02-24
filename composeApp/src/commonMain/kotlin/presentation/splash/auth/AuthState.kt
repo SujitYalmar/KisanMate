@@ -1,12 +1,21 @@
 package com.example.kisanmate.presentation.auth
 
 data class AuthState(
+
+    val name: String = "",
+
     val phoneNumber: String = "",
-    val name: String = "", // Added for Signup
+
     val otpCode: String = "",
-    val isLoading: Boolean = false,
+
     val isOtpSent: Boolean = false,
-    val isSignupMode: Boolean = false, // Toggle state
+
+    // ✅ Signup first
+    val isSignupMode: Boolean = true,
+
+    val isLoading: Boolean = false,
+
     val isAuthenticated: Boolean = false,
+
     val error: String? = null
 )
