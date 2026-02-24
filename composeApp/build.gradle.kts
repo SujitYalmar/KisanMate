@@ -44,8 +44,11 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(compose.materialIconsExtended)
+            implementation(libs.coil.compose)
 
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+            implementation("com.google.firebase:firebase-storage-ktx:20.3.0")
+            implementation("androidx.activity:activity-compose:1.8.2")
 
             // 2. Firebase Multiplatform Dependencies
             implementation("dev.gitlive:firebase-auth:1.13.0")

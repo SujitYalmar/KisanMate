@@ -27,38 +27,76 @@ class AuthViewModel : ViewModel() {
     private var verificationId: String? = null
     var activity: Activity? = null
 
+
     fun onAction(action: AuthAction) {
+
         when (action) {
+
             is AuthAction.OnPhoneChange ->
-                _state.update { it.copy(phoneNumber = action.phone.filter { c -> c.isDigit() }) }
+                _state.update {
+                    it.copy(
+                        phoneNumber = action.phone.filter { c -> c.isDigit() }
+                    )
+                }
 
             is AuthAction.OnOtpChange ->
-                _state.update { it.copy(otpCode = action.code) }
+                _state.update {
+                    it.copy(otpCode = action.code)
+                }
 
             is AuthAction.OnNameChange ->
-                _state.update { it.copy(name = action.name) }
+                _state.update {
+                    it.copy(name = action.name)
+                }
 
-            AuthAction.SendOtp -> sendOtp()
-            AuthAction.VerifyOtp -> verifyCode()
+            AuthAction.SendOtp ->
+                sendOtp()
+
+            AuthAction.VerifyOtp ->
+                verifyCode()
 
             AuthAction.ToggleAuthMode ->
-                _state.update { it.copy(isSignupMode = !it.isSignupMode, error = null) }
+                _state.update {
+                    it.copy(
+                        isSignupMode = !it.isSignupMode,
+                        error = null
+                    )
+                }
 
+            // ✅ Back button from OTP screen
             AuthAction.BackFromOtp ->
-                _state.update { it.copy(isOtpSent = false, error = null) }
+                _state.update {
+                    it.copy(
+                        isOtpSent = false,
+                        otpCode = "",
+                        error = null
+                    )
+                }
         }
     }
 
+
+    // ✅ SEND OTP
     private fun sendOtp() {
+
         val phone = _state.value.phoneNumber
         val act = activity ?: return
 
         if (phone.length != 10) {
-            _state.update { it.copy(error = "Enter valid number") }
+
+            _state.update {
+                it.copy(error = "Enter valid number")
+            }
+
             return
         }
 
-        _state.update { it.copy(isLoading = true, error = null) }
+        _state.update {
+            it.copy(
+                isLoading = true,
+                error = null
+            )
+        }
 
         val options = PhoneAuthOptions.newBuilder(firebaseAuth)
             .setPhoneNumber("+91$phone")
@@ -70,81 +108,139 @@ class AuthViewModel : ViewModel() {
         PhoneAuthProvider.verifyPhoneNumber(options)
     }
 
-    private val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
 
-        override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-            firebaseAuth.signInWithCredential(credential)
-        }
+    // ✅ OTP CALLBACK
+    private val callbacks =
+        object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
 
-        override fun onVerificationFailed(e: FirebaseException) {
-            _state.update {
-                it.copy(isLoading = false, error = e.message)
+            override fun onVerificationCompleted(
+                credential: PhoneAuthCredential
+            ) {
+                firebaseAuth.signInWithCredential(credential)
+            }
+
+            override fun onVerificationFailed(e: FirebaseException) {
+
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message
+                    )
+                }
+            }
+
+            override fun onCodeSent(
+                verificationId: String,
+                token: PhoneAuthProvider.ForceResendingToken
+            ) {
+
+                this@AuthViewModel.verificationId =
+                    verificationId
+
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        isOtpSent = true
+                    )
+                }
             }
         }
 
-        override fun onCodeSent(
-            verificationId: String,
-            token: PhoneAuthProvider.ForceResendingToken
-        ) {
-            this@AuthViewModel.verificationId = verificationId
-            _state.update {
-                it.copy(isLoading = false, isOtpSent = true)
-            }
-        }
-    }
 
+
+    // ✅ VERIFY OTP + AUTO SWITCH LOGIN/SIGNUP
     private fun verifyCode() {
+
         val code = _state.value.otpCode
         val verId = verificationId ?: return
 
         if (code.length < 6) {
-            _state.update { it.copy(error = "Enter 6-digit OTP") }
+
+            _state.update {
+                it.copy(error = "Enter 6-digit OTP")
+            }
+
             return
         }
 
-        _state.update { it.copy(isLoading = true, error = null) }
+        _state.update {
+            it.copy(
+                isLoading = true,
+                error = null
+            )
+        }
 
-        val credential = PhoneAuthProvider.getCredential(verId, code)
+        val credential =
+            PhoneAuthProvider.getCredential(
+                verId,
+                code
+            )
 
-        firebaseAuth.signInWithCredential(credential)
+
+        firebaseAuth
+            .signInWithCredential(credential)
+
             .addOnCompleteListener { task ->
+
                 if (!task.isSuccessful) {
+
                     _state.update {
-                        it.copy(isLoading = false, error = "Invalid OTP")
+                        it.copy(
+                            isLoading = false,
+                            error = "Invalid OTP"
+                        )
                     }
+
                     return@addOnCompleteListener
                 }
 
-                val user = task.result.user ?: return@addOnCompleteListener
+
+                val user =
+                    task.result.user ?: return@addOnCompleteListener
+
 
                 viewModelScope.launch {
 
-                    val userDoc = firestore.collection("users")
-                        .document(user.uid)
-                        .get()
+                    val userDoc =
+                        firestore.collection("users")
+                            .document(user.uid)
+                            .get()
 
+
+                    // ✅ EXISTING USER → LOGIN
                     if (userDoc.exists) {
-                        // ✅ Existing user → login success
+
                         _state.update {
+
                             it.copy(
                                 isLoading = false,
-                                isAuthenticated = true
+                                isAuthenticated = true,
+                                isSignupMode = false
                             )
                         }
-                    } else {
-                        // ❌ User does not exist in Firestore
+
+                    }
+
+                    // ✅ NEW USER → AUTO SIGNUP MODE
+                    else {
+
                         if (_state.value.name.isBlank()) {
+
                             _state.update {
+
                                 it.copy(
                                     isLoading = false,
-                                    error = "Please create account first",
-                                    isSignupMode = true
+                                    isSignupMode = true,
+                                    isOtpSent = false,
+                                    error = "New user detected. Enter your name"
                                 )
                             }
+
                             return@launch
                         }
 
-                        // ✅ Create new account
+
+                        // ✅ CREATE ACCOUNT
                         firestore.collection("users")
                             .document(user.uid)
                             .set(
@@ -155,7 +251,9 @@ class AuthViewModel : ViewModel() {
                                 )
                             )
 
+
                         _state.update {
+
                             it.copy(
                                 isLoading = false,
                                 isAuthenticated = true
