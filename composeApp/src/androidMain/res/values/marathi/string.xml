@@ -1,0 +1,33 @@
+<resources>
+
+    <!-- App -->
+    <string name="app_name">किसानमेट</string>
+
+    <!-- Auth -->
+    <string name="join_us">नवीन खाते तयार करा</string>
+    <string name="welcome_back">पुन्हा स्वागत आहे</string>
+    <string name="verify_code">कोड तपासा</string>
+    <string name="enter_details">पुढे जाण्यासाठी माहिती भरा</string>
+    <string name="enter_otp">6 अंकी OTP टाका</string>
+    <string name="full_name">पूर्ण नाव</string>
+    <string name="mobile_number">मोबाईल नंबर</string>
+    <string name="otp_code">ओटीपी कोड</string>
+    <string name="send_otp">OTP पाठवा</string>
+    <string name="verify_start">सुरू करा</string>
+
+    <!-- Profile -->
+    <string name="general_settings">सामान्य सेटिंग्स</string>
+    <string name="app_language">भाषा बदला</string>
+    <string name="help_support">मदत आणि समर्थन</string>
+    <string name="account">खाते</string>
+    <string name="logout">लॉग आउट</string>
+    <string name="confirm_logout">लॉग आउट करा</string>
+    <string name="logout_question">तुम्हाला लॉग आउट करायचे आहे का?</string>
+
+    <!-- Language -->
+    <string name="select_language">भाषा निवडा</string>
+    <string name="english">इंग्रजी</string>
+    <string name="hindi">हिंदी</string>
+    <string name="marathi">मराठी</string>
+
+</resources>

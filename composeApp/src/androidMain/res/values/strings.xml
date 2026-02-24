@@ -1,3 +1,33 @@
 <resources>
+
+    <!-- App -->
     <string name="app_name">KisanMate</string>
+
+    <!-- Auth -->
+    <string name="join_us">Join Us</string>
+    <string name="welcome_back">Welcome Back</string>
+    <string name="verify_code">Verify Code</string>
+    <string name="enter_details">Enter your details to continue</string>
+    <string name="enter_otp">Enter the 6-digit code sent to your phone</string>
+    <string name="full_name">Full Name</string>
+    <string name="mobile_number">Mobile Number</string>
+    <string name="otp_code">OTP Code</string>
+    <string name="send_otp">Send OTP</string>
+    <string name="verify_start">Verify &amp; Get Started</string>
+
+    <!-- Profile -->
+    <string name="general_settings">General Settings</string>
+    <string name="app_language">App Language</string>
+    <string name="help_support">Help &amp; Support</string>
+    <string name="account">Account</string>
+    <string name="logout">Logout</string>
+    <string name="confirm_logout">Confirm Logout</string>
+    <string name="logout_question">Are you sure you want to logout?</string>
+
+    <!-- Language -->
+    <string name="select_language">Select Language</string>
+    <string name="english">English</string>
+    <string name="hindi">Hindi</string>
+    <string name="marathi">Marathi</string>
+
 </resources>
