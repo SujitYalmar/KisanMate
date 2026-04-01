@@ -93,7 +93,7 @@ KisanMate provides a simple digital solution to:
 
 ## 📦 Installation
 ```bash
-git clone https://github.com/your-username/KisanMate.git
+git clone https://github.com/SujitYalmar/KisanMate.git
 cd KisanMate
 ```
 
